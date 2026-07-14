@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { scroll-behavior: smooth; }
+  /* Tokens CSS das cores oficiais do Manual da Marca (pág. 8) */
+  :root {
+    --brand-yellow: #FFD000;
+    --brand-navy:   #002E4A;
+    --brand-mint:   #89D6C2;   /* verde água — Pantone 3242 */
+    --brand-gray:   #D7D7D7;   /* cinza — Pantone Cool Gray 2 C */
+  }
+  /* Tipografia oficial (Manual da Marca pág. 6): Open Sans corpo + Montserrat títulos */
+  body { font-family: 'Open Sans', system-ui, sans-serif; color:#0b1b27; background:#fff; }
+  h1, h2, h3, h4, h5, h6, .font-display { font-family: 'Montserrat', system-ui, sans-serif; }
+  /* Wordmark da marca tem letter-spacing apertado; espelha o lockup */
+  .brand-wordmark { font-family:'Montserrat', system-ui, sans-serif; font-weight:800; letter-spacing:-0.02em; }
+  ::selection { background:#FFD000; color:#002E4A; }
+  /* Custom scrollbar for admin */
+  .nice-scroll::-webkit-scrollbar { width: 10px; height: 10px; }
+  .nice-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+  .nice-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  /* Toast */
+  .toast-enter { animation: fadein .25s ease-out both; }
+  /* Quill-lite editor styling */
+  .rt-editor [contenteditable="true"] { min-height: 320px; outline:none; }
+  .rt-editor h2 { font-size: 1.5rem; font-weight: 800; margin:.8em 0 .4em; }
+  .rt-editor h3 { font-size: 1.25rem; font-weight: 700; margin:.7em 0 .35em; }
+  .rt-editor h4 { font-size: 1.1rem; font-weight: 700; margin:.6em 0 .3em; }
+  .rt-editor blockquote { border-left: 4px solid #FFD000; padding: .25rem 1rem; color:#334155; font-style: italic; margin:.75rem 0; background:#F4F6F8; border-radius: 4px; }
+  .rt-editor ul { list-style: disc; padding-left: 1.4rem; }
+  .rt-editor ol { list-style: decimal; padding-left: 1.4rem; }
+  .rt-editor a { color:#002E4A; text-decoration: underline; }
+  .rt-editor pre, .rt-editor code { font-family: 'JetBrains Mono', monospace; background:#0b1b27; color:#e2e8f0; padding:.15rem .4rem; border-radius: 4px; }
+  .rt-editor pre { padding: 1rem; overflow:auto; }
+  .rt-editor img { max-width: 100%; border-radius: 8px; margin:.5rem 0; }
+  /* Article rendered HTML */
+  .article-body h2 { font-size: 1.6rem; font-weight: 800; margin: 1.6em 0 .5em; color:#002E4A; }
+  .article-body h3 { font-size: 1.3rem; font-weight: 700; margin: 1.4em 0 .4em; color:#002E4A; }
+  .article-body h4 { font-size: 1.1rem; font-weight: 700; margin: 1.2em 0 .3em; color:#002E4A; }
+  .article-body p  { margin: .9em 0; line-height: 1.75; color:#1f2937; }
+  .article-body ul { list-style: disc; padding-left: 1.4rem; margin:.8em 0; }
+  .article-body ol { list-style: decimal; padding-left: 1.4rem; margin:.8em 0; }
+  .article-body blockquote { border-left: 4px solid #FFD000; padding: .5rem 1rem; color:#334155; font-style: italic; background:#F4F6F8; border-radius: 4px; margin:1em 0; }
+  .article-body a { color:#002E4A; text-decoration: underline; font-weight: 600; }
+  .article-body img { max-width:100%; border-radius:10px; margin:1em 0; }
+  .article-body { max-width: 100%; overflow-wrap: break-word; }
+  .article-body img, .article-body video, .article-body iframe { display:block; height:auto; }
+  /* Defensive cover container — usado em todos os covers de post para evitar overflow do img */
+  .post-cover { position: relative; overflow: hidden; }
+  .post-cover > img { position:absolute; inset:0; width:100%; height:100%; object-fit: cover; display:block; }
+  /* Hide scrollbar utility */
+  .no-scrollbar::-webkit-scrollbar { display:none; }
+  .no-scrollbar { scrollbar-width: none; }
+  /* Cards de parceiros (fornecedores e clientes) — no hover, o fundo passa a
+     usar o cinza oficial da marca (#D7D7D7 / Pantone Cool Gray 2 C). O seletor
+     com :hover tem especificidade maior que a utilitária `bg-white`, então
+     sobrepõe o branco apenas ao passar o mouse; a transição já vem do Tailwind. */
+  .partner-card:hover { background-color: var(--brand-gray); }
+  /* Wave separator */
+  .iso-stripe-bg {
+    background:
+      repeating-linear-gradient(135deg, rgba(255,208,0,.10) 0 12px, transparent 12px 24px),
+      #002E4A;
+  }
