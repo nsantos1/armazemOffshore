@@ -60,7 +60,7 @@ export const SEED_PARTNERS: Partner[] = [
     about: "Maior companhia de energia do Brasil e uma das maiores operadoras de águas profundas do mundo, líder na exploração e produção de petróleo no pré-sal e nas bacias de Campos e Santos.", active: true, order: 1 },
   { id: "c2", name: "Equinor", kind: "client", url: "https://www.equinor.com.br", image: "/clientesParceiros/logoEquinor.png", desc: "Operadora de óleo e gás",
     about: "Empresa norueguesa de energia e uma das maiores operadoras offshore do mundo, com forte presença no pré-sal brasileiro, incluindo o campo de Bacalhau e a operação de Roncador.", active: true, order: 2 },
-  { id: "c3", name: "Halliburton", kind: "client", url: "https://www.halliburton.com", image: "/clientesParceiros/logoHalliburton.jpg", desc: "Serviços de campo",
+  { id: "c3", name: "Halliburton", kind: "client", url: "https://www.halliburton.com", image: "/clientesParceiros/logoHalliburton.png", desc: "Serviços de campo",
     about: "Uma das maiores prestadoras de serviços para a indústria de óleo e gás (oilfield services) do mundo, atuante em perfuração, completação, estimulação e avaliação de reservatórios.", active: true, order: 3 },
   { id: "c4", name: "SLB", kind: "client", url: "https://www.slb.com", image: "/clientesParceiros/logoSlb.webp", desc: "Tecnologia para energia",
     about: "Antiga Schlumberger, é a maior empresa de tecnologia e serviços para energia do mundo, presente em toda a cadeia de exploração e produção, da perfuração à produção digital.", active: true, order: 4 },

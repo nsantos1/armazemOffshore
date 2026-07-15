@@ -64,7 +64,7 @@ export function About({ settings }: { settings: Settings }) {
 
         <div className="relative">
           <div className="aspect-[4/3] rounded-xl overflow-hidden shadow-card">
-            <img src="/assets/basePortoAcu-IA.jpeg" alt="Base de Apoio Porto do Açu" className="w-full h-full object-cover" />
+            <img src="/assets/basePortoAcu.png" alt="Base de Apoio Porto do Açu" className="w-full h-full object-cover" />
           </div>
           <div className="absolute -bottom-6 -left-6 hidden sm:block">
             <div className="rounded-xl bg-white p-5 shadow-deep border border-slate-200 w-64">
