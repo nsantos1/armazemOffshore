@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Icon } from "@/components/icons";
-import { api } from "@/lib/api";
+import { fetchCampaigns, fetchSubscribers } from "@/lib/newsletter-client";
 import type { NavigateFn } from "@/lib/types";
 import { ComposeTab } from "./ComposeTab";
 import { HistoryTab } from "./HistoryTab";
@@ -51,15 +51,20 @@ export function NewsletterPage({ navigate, initialTab }: NewsletterPageProps) {
 }
 
 function NewsletterStats() {
-  const subs = api.nlGetSubs();
-  const camps = api.nlGetCamps();
-  const active = subs.filter(s => s.status === "active").length;
-  const sent = camps.filter(c => c.status === "sent").length;
+  const [stats, setStats] = React.useState({ active: 0, total: 0, sent: 0 });
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const [subs, camps] = await Promise.all([fetchSubscribers(), fetchCampaigns()]);
+        setStats({ active: subs.activeCount, total: subs.total, sent: camps.filter(c => c.status === "sent").length });
+      } catch { /* silencioso */ }
+    })();
+  }, []);
   return (
     <div className="flex flex-wrap gap-2 text-sm">
-      <span className="rounded-md bg-primary text-white px-3 py-1.5 font-bold">{active} inscritos ativos</span>
-      <span className="rounded-md bg-bg-soft text-primary px-3 py-1.5 font-semibold">{subs.length} totais</span>
-      <span className="rounded-md bg-accent text-primary px-3 py-1.5 font-bold">{sent} campanhas enviadas</span>
+      <span className="rounded-md bg-primary text-white px-3 py-1.5 font-bold">{stats.active} inscritos ativos</span>
+      <span className="rounded-md bg-bg-soft text-primary px-3 py-1.5 font-semibold">{stats.total} totais</span>
+      <span className="rounded-md bg-accent text-primary px-3 py-1.5 font-bold">{stats.sent} campanhas enviadas</span>
     </div>
   );
 }

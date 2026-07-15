@@ -5,8 +5,6 @@ import type {
   Banner,
   Certifications,
   Identity,
-  NLCampaign,
-  NLSubscriber,
   Partner,
   Settings,
 } from "./types";
@@ -145,8 +143,3 @@ export const SEED_SETTINGS: Settings = {
   // Rastreamento / Google Analytics — tags fornecidas pela agência de marketing.
   analytics: SEED_ANALYTICS,
 };
-
-// ---- NEWSLETTER seed --------------------------------------------------
-export const SEED_NL_SUBS: NLSubscriber[] = [];
-
-export const SEED_NL_CAMPS: NLCampaign[] = [];

@@ -16,9 +16,9 @@ import {
 } from "@/features/admin/pages";
 import { NewsletterPage } from "@/features/admin/newsletter";
 import { Footer, Header, ScrollTop, WhatsAppFloat } from "@/features/public";
-import { BlogListPage, BlogPostPage, CertificationsPage, HomePage } from "@/features/public/pages";
+import { BlogListPage, BlogPostPage, CertificationsPage, HomePage, PrivacyPage } from "@/features/public/pages";
 import { UnsubscribePage } from "@/features/unsubscribe/UnsubscribePage";
-import { api, init } from "@/lib/api";
+import { api } from "@/lib/api";
 import { hydrate } from "@/lib/storage";
 import { applyAnalytics } from "@/lib/analytics";
 import { applyFavicon } from "@/lib/utils";
@@ -55,7 +55,6 @@ function App() {
       // Carrega o conteúdo do servidor (banners, parceiros, settings, etc.) para o
       // cache ANTES da primeira pintura, para todos verem o conteúdo real.
       await hydrate();
-      init();
       if (!alive) return;
       setSession(api.getSession());
       setIdentity(api.getIdentity());
@@ -179,6 +178,8 @@ function App() {
     page = <BlogPostPage slug={slug} posts={posts} navigate={navigate} />;
   } else if (route === "/certificacoes") {
     page = <CertificationsPage certs={pubCerts} navigate={navigate} />;
+  } else if (route === "/privacidade") {
+    page = <PrivacyPage settings={pubSettings} navigate={navigate} />;
   } else if (route === "/unsubscribe") {
     page = <UnsubscribePage navigate={navigate} />;
   } else {

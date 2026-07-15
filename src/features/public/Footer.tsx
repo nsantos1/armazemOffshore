@@ -72,8 +72,12 @@ export function Footer({ settings, identity, navigate }: FooterProps) {
       </div>
       <div className="border-t border-white/10">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 py-5 flex flex-col md:flex-row items-center justify-between gap-2 text-xs text-white/60">
-          <p>{t("footer.rights")}</p>
-          <p>{t("footer.developedBy")} Nicolas Santos - <span className="text-accent font-mono"> <a href="https://devnsantos.com/"> @dev_nicolas </a></span></p>
+          <p className="flex items-center gap-2">
+            {t("footer.rights")}
+            <span className="opacity-40">·</span>
+            <a href="/privacidade" onClick={(e) => { e.preventDefault(); navigate("/privacidade"); }} className="hover:text-accent">{t("contact.privacy")}</a>
+          </p>
+          <p>{t("footer.developedBy")} Nicolas Santos - <span className="text-accent font-mono"> <a href="https://devnsantos.com/" target="_blank" rel="noreferrer"> @dev_nicolas </a></span></p>
         </div>
       </div>
     </footer>

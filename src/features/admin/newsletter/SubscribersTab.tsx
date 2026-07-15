@@ -8,9 +8,8 @@ import { Field, Input, Select } from "@/components/ui/FormControls";
 import { Modal } from "@/components/ui/Modal";
 import { useConfirm } from "@/components/ui/useConfirm";
 import { useToast } from "@/components/ui/Toast";
-import { api } from "@/lib/api";
+import { addSubscriber, deleteSubscriber, fetchSubscribers, updateSubscriber } from "@/lib/newsletter-client";
 import { fmtDateShort } from "@/lib/utils";
-import { isApiFailure } from "@/lib/types";
 import type { NLSubscriber, NLSubscriberStatus } from "@/lib/types";
 
 const PAGE_SIZE = 20;
@@ -27,7 +26,8 @@ const SOURCE_LABEL: Record<string, string> = {
 export function SubscribersTab() {
   const toast = useToast();
   const [confirm, confirmNode] = useConfirm();
-  const [list, setList] = React.useState<NLSubscriber[]>(() => api.nlGetSubs());
+  const [list, setList] = React.useState<NLSubscriber[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [q, setQ] = React.useState("");
   const [statusF, setStatusF] = React.useState("all");
   const [sourceF, setSourceF] = React.useState("all");
@@ -37,7 +37,13 @@ export function SubscribersTab() {
   const [addOpen, setAddOpen] = React.useState(false);
   const [addEmail, setAddEmail] = React.useState("");
 
-  const reload = () => setList(api.nlGetSubs());
+  const reload = React.useCallback(async () => {
+    setLoading(true);
+    try { const { subscribers } = await fetchSubscribers(); setList(subscribers); }
+    catch (e) { toast(e instanceof Error ? e.message : "Falha ao carregar inscritos.", "error"); }
+    finally { setLoading(false); }
+  }, [toast]);
+  React.useEffect(() => { reload(); }, [reload]);
   const sources = ["all", ...new Set(list.map(s => s.source))];
 
   const filtered = list.filter(s => {
@@ -55,21 +61,27 @@ export function SubscribersTab() {
   const del = async (s: NLSubscriber) => {
     const ok = await confirm({ title: "Remover inscrito", message: `Remover ${s.email}?`, danger: true, confirmText: "Remover" });
     if (!ok) return;
-    api.nlDeleteSub(s.id); reload(); toast("Inscrito removido.", "success");
+    try { await deleteSubscriber(s.id); setList(l => l.filter(x => x.id !== s.id)); toast("Inscrito removido.", "success"); }
+    catch (e) { toast(e instanceof Error ? e.message : "Falha ao remover.", "error"); }
   };
-  const toggleStatus = (s: NLSubscriber) => {
-    const next = s.status === "active" ? "unsubscribed" : "active";
-    api.nlUpdateSub(s.id, { status: next });
-    reload();
+  const toggleStatus = async (s: NLSubscriber) => {
+    const next: NLSubscriberStatus = s.status === "active" ? "unsubscribed" : "active";
+    try {
+      await updateSubscriber(s.id, next);
+      setList(l => l.map(x => x.id === s.id ? { ...x, status: next } : x));
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Falha ao atualizar.", "error");
+    }
   };
-  const addManual = () => {
-    const r = api.nlAddSub(addEmail, { source: "manual" });
-    if (isApiFailure(r)) {
+  const addManual = async () => {
+    const r = await addSubscriber(addEmail);
+    if (!r.ok) {
       if (r.reason === "invalid_email") toast("E-mail inválido.", "error");
       else if (r.reason === "already_subscribed") toast("Esse e-mail já está inscrito.", "info");
+      else toast((r.error as string) || "Falha ao adicionar.", "error");
       return;
     }
-    setAddEmail(""); setAddOpen(false); reload();
+    setAddEmail(""); setAddOpen(false); await reload();
     toast(r.reactivated ? "Inscrição reativada." : "Inscrito adicionado.", "success");
   };
 
@@ -117,7 +129,9 @@ export function SubscribersTab() {
       </div>
 
       {/* table */}
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="p-10 text-center text-text-muted"><Icon name="Loader2" className="w-6 h-6 animate-spin mx-auto" /><div className="mt-2 text-sm">Carregando inscritos...</div></div>
+      ) : filtered.length === 0 ? (
         <div className="p-6"><EmptyState icon="Mail" title="Nenhum inscrito encontrado" hint="Ajuste os filtros ou cadastre um e-mail manualmente." /></div>
       ) : (
       <>

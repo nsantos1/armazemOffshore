@@ -34,7 +34,7 @@ export function HomePage({ banners, posts, partners, settings, navigate }: HomeP
       <Solutions settings={settings} />
       <LatestNews posts={posts} navigate={navigate} />
       <Partners partners={partners} />
-      <Contact settings={settings} />
+      <Contact settings={settings} navigate={navigate} />
     </>
   );
 }

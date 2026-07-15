@@ -5,10 +5,9 @@ import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea } from "@/components/ui/FormControls";
 import { useToast } from "@/components/ui/Toast";
-import { api } from "@/lib/api";
+import { subscribe } from "@/lib/newsletter-client";
 import { useLang } from "@/lib/i18n";
-import { isApiFailure } from "@/lib/types";
-import type { Settings } from "@/lib/types";
+import type { NavigateFn, Settings } from "@/lib/types";
 import { InteractiveMap } from "./InteractiveMap";
 
 interface ContactForm {
@@ -22,7 +21,7 @@ interface ContactForm {
 
 type ContactErrors = Partial<Record<keyof ContactForm, string>>;
 
-export function Contact({ settings }: { settings: Settings }) {
+export function Contact({ settings, navigate }: { settings: Settings; navigate: NavigateFn }) {
   const toast = useToast();
   const { t } = useLang();
   const [form, setForm] = React.useState<ContactForm>({ name: "", email: "", phone: "", company: "", message: "", newsletter: false });
@@ -76,16 +75,14 @@ export function Contact({ settings }: { settings: Settings }) {
         return;
       }
 
-      // Opt-in de newsletter (mantém o painel admin demo populado).
+      // Opt-in de newsletter → grava no servidor (aparece no painel admin de todos).
       let nlMsg = "";
       if (form.newsletter) {
-        const r = api.nlAddSub(form.email, { source: "contact_form" });
-        if (isApiFailure(r)) {
-          if (r.reason === "already_subscribed") nlMsg = t("contact.nlAlready");
-        } else {
-          nlMsg = r.reactivated
-            ? t("contact.nlReactivated")
-            : t("contact.nlSubscribed");
+        const r = await subscribe(form.email, "contact_form");
+        if (r.ok) {
+          nlMsg = r.reactivated ? t("contact.nlReactivated") : t("contact.nlSubscribed");
+        } else if (r.reason === "already_subscribed") {
+          nlMsg = t("contact.nlAlready");
         }
       }
       toast(t("contact.toastSuccess") + nlMsg, "success");
@@ -192,7 +189,7 @@ export function Contact({ settings }: { settings: Settings }) {
             />
             <span className="text-sm text-primary leading-relaxed">
               <span className="font-semibold">{t("contact.optin")}</span>
-              <span className="block text-xs text-text-muted mt-0.5">{t("contact.optinSub")} {t("contact.optinSee")} <a href="#" className="underline">{t("contact.privacy")}</a>.</span>
+              <span className="block text-xs text-text-muted mt-0.5">{t("contact.optinSub")} {t("contact.optinSee")} <a href="/privacidade" onClick={e => { e.preventDefault(); navigate("/privacidade"); }} className="underline">{t("contact.privacy")}</a>.</span>
             </span>
           </label>
 

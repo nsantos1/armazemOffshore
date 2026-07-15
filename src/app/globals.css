@@ -57,6 +57,14 @@ html { scroll-behavior: smooth; }
      com :hover tem especificidade maior que a utilitária `bg-white`, então
      sobrepõe o branco apenas ao passar o mouse; a transição já vem do Tailwind. */
   .partner-card:hover { background-color: var(--brand-gray); }
+  /* Política de Privacidade (LGPD) */
+  .privacy-body { color:#334155; font-size: 15px; line-height: 1.75; }
+  .privacy-body h2 { font-size: 1.25rem; font-weight: 800; color:#002E4A; margin: 1.8em 0 .5em; }
+  .privacy-body p { margin: .8em 0; }
+  .privacy-body ul { list-style: disc; padding-left: 1.4rem; margin: .6em 0; }
+  .privacy-body li { margin: .35em 0; }
+  .privacy-body a { color:#002E4A; text-decoration: underline; font-weight: 600; }
+  .privacy-body strong { color:#0b1f3a; }
   /* Wave separator */
   .iso-stripe-bg {
     background:

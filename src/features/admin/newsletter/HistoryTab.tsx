@@ -5,7 +5,7 @@ import { Icon } from "@/components/icons";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useConfirm } from "@/components/ui/useConfirm";
 import { useToast } from "@/components/ui/Toast";
-import { api } from "@/lib/api";
+import { createCampaign, deleteCampaign, fetchCampaigns } from "@/lib/newsletter-client";
 import { fmtDateShort } from "@/lib/utils";
 import type { NavigateFn, NLCampaign, NLCampaignStatus } from "@/lib/types";
 import { CampaignDetailModal } from "./EmailModals";
@@ -20,18 +20,30 @@ const STATUS_BADGE: Record<string, { bg: string; label: string }> = {
 export function HistoryTab({ navigate }: { navigate: NavigateFn }) {
   const toast = useToast();
   const [confirm, confirmNode] = useConfirm();
-  const [list, setList] = React.useState<NLCampaign[]>(() => api.nlGetCamps());
+  const [list, setList] = React.useState<NLCampaign[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [open, setOpen] = React.useState<NLCampaign | null>(null);
-  const reload = () => setList(api.nlGetCamps());
+  const reload = React.useCallback(async () => {
+    setLoading(true);
+    try { setList(await fetchCampaigns()); }
+    catch (e) { toast(e instanceof Error ? e.message : "Falha ao carregar campanhas.", "error"); }
+    finally { setLoading(false); }
+  }, [toast]);
+  React.useEffect(() => { reload(); }, [reload]);
 
   const del = async (c: NLCampaign) => {
     const ok = await confirm({ title: "Excluir campanha", message: `Excluir "${c.subject}"?`, danger: true, confirmText: "Excluir" });
     if (!ok) return;
-    api.nlDeleteCamp(c.id); reload(); toast("Campanha excluída.", "success");
+    try { await deleteCampaign(c.id); setList(l => l.filter(x => x.id !== c.id)); toast("Campanha excluída.", "success"); }
+    catch (e) { toast(e instanceof Error ? e.message : "Falha ao excluir.", "error"); }
   };
-  const duplicate = (c: NLCampaign) => {
-    api.nlCreateCamp({ ...c, subject: `(Cópia) ${c.subject}`, status: "draft", sentAt: null, sentCount: 0, opensCount: 0, clicksCount: 0 });
-    reload(); toast("Campanha duplicada como rascunho.", "success");
+  const duplicate = async (c: NLCampaign) => {
+    try {
+      await createCampaign({ subject: `(Cópia) ${c.subject}`, preheader: c.preheader, content: c.content, coverImage: c.coverImage, status: "draft" });
+      await reload(); toast("Campanha duplicada como rascunho.", "success");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Falha ao duplicar.", "error");
+    }
   };
 
   const statusBadge = (c: NLCampaign) => {
@@ -42,7 +54,9 @@ export function HistoryTab({ navigate }: { navigate: NavigateFn }) {
   return (
     <div className="rounded-xl bg-white border border-slate-200 shadow-card overflow-hidden">
       {confirmNode}
-      {list.length === 0 ? (
+      {loading ? (
+        <div className="p-10 text-center text-text-muted"><Icon name="Loader2" className="w-6 h-6 animate-spin mx-auto" /><div className="mt-2 text-sm">Carregando campanhas...</div></div>
+      ) : list.length === 0 ? (
         <div className="p-6"><EmptyState icon="History" title="Nenhuma campanha enviada" hint="Compor sua primeira newsletter na aba 'Enviar campanha'." /></div>
       ) : (
       <div className="overflow-x-auto">

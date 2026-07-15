@@ -8,6 +8,7 @@ import { StripedPlaceholder } from "@/components/ui/StripedPlaceholder";
 import { useConfirm } from "@/components/ui/useConfirm";
 import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api";
+import { createCampaign, fetchSubscribers, sendCampaign, sendTest as sendTestCampaign, updateCampaign } from "@/lib/newsletter-client";
 import { fileToDataURL } from "@/lib/utils";
 import type { NavigateFn, NLRecipientMode } from "@/lib/types";
 import { RichEditor } from "../RichEditor";
@@ -41,7 +42,10 @@ export function ComposeTab({ navigate, setTab }: ComposeTabProps) {
   const [testEmail, setTestEmail] = React.useState("");
   const [busy, setBusy] = React.useState(false);
 
-  const activeCount = api.nlGetSubs().filter(s => s.status === "active").length;
+  const [activeCount, setActiveCount] = React.useState(0);
+  React.useEffect(() => {
+    fetchSubscribers().then(r => setActiveCount(r.activeCount)).catch(() => {});
+  }, []);
 
   const onCover = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if (!f) return;
@@ -57,17 +61,15 @@ export function ComposeTab({ navigate, setTab }: ComposeTabProps) {
     setErrs(e); return Object.keys(e).length === 0;
   };
 
-  const saveDraft = () => {
+  const saveDraft = async () => {
     if (!data.subject.trim()) { toast("Informe o assunto para salvar o rascunho.", "error"); return; }
-    api.nlCreateCamp({ ...data, status: "draft" });
-    toast("Rascunho salvo.", "success");
-    setTab("history");
-  };
-  // Monta o link de descadastro no formato que a página /unsubscribe entende
-  // (token na query string + rota no hash): origin/?token=XXX#/unsubscribe
-  const unsubUrl = (id: string): string => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    return `${origin}/?token=${encodeURIComponent(api.nlSubToken(id))}#/unsubscribe`;
+    try {
+      await createCampaign({ ...data, status: "draft" });
+      toast("Rascunho salvo.", "success");
+      setTab("history");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Falha ao salvar o rascunho.", "error");
+    }
   };
 
   const sendTest = async () => {
@@ -75,23 +77,10 @@ export function ComposeTab({ navigate, setTab }: ComposeTabProps) {
     if (!validate()) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/newsletter/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject: data.subject,
-          html: data.content,
-          preheader: data.preheader,
-          coverImage: data.coverImage,
-          test: true,
-          recipients: [{ email: testEmail }],
-        }),
+      const out = await sendTestCampaign({
+        subject: data.subject, html: data.content, preheader: data.preheader, coverImage: data.coverImage, testEmail,
       });
-      const out = await res.json().catch(() => ({ ok: false }));
-      if (!res.ok || !out.ok) {
-        toast(out?.error || "Não foi possível enviar o e-mail de teste.", "error");
-        return;
-      }
+      if (!out.ok) { toast((out.error as string) || "Não foi possível enviar o e-mail de teste.", "error"); return; }
       toast(`E-mail de teste enviado para ${testEmail}.`, "success");
     } catch {
       toast("Falha de conexão ao enviar o teste.", "error");
@@ -102,39 +91,21 @@ export function ComposeTab({ navigate, setTab }: ComposeTabProps) {
 
   const sendNow = async () => {
     if (!validate()) return;
-    const recipients = api.nlGetSubs().filter(s => s.status === "active");
-    if (recipients.length === 0) { toast("Não há inscritos ativos para enviar.", "error"); return; }
+    if (activeCount === 0) { toast("Não há inscritos ativos para enviar.", "error"); return; }
     const ok = await confirm({
       title: "Confirmar envio",
-      message: `Disparar para ${recipients.length} inscritos ativos? Esta ação não pode ser desfeita.`,
+      message: `Disparar para ${activeCount} inscritos ativos? Esta ação não pode ser desfeita.`,
       confirmText: "Enviar agora",
     });
     if (!ok) return;
     setBusy(true);
     try {
-      const res = await fetch("/api/newsletter/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject: data.subject,
-          html: data.content,
-          preheader: data.preheader,
-          coverImage: data.coverImage,
-          recipients: recipients.map(r => ({ email: r.email, unsubscribeUrl: unsubUrl(r.id) })),
-        }),
-      });
-      const out = await res.json().catch(() => ({ ok: false }));
-      if (!res.ok || !out.ok) {
-        toast(out?.error || "Falha no disparo da campanha.", "error");
-        return;
-      }
+      // O servidor lê os inscritos ATIVOS do banco e dispara.
+      const out = await sendCampaign({ subject: data.subject, html: data.content, preheader: data.preheader, coverImage: data.coverImage });
+      if (!out.ok) { toast((out.error as string) || "Falha no disparo da campanha.", "error"); return; }
       // Registra a campanha no histórico com a contagem REAL de enviados.
-      const camp = api.nlCreateCamp({ ...data, status: "draft" });
-      api.nlUpdateCamp(camp.id, {
-        status: "sent",
-        sentAt: new Date().toISOString(),
-        sentCount: out.sent ?? recipients.length,
-      });
+      const camp = await createCampaign({ ...data, status: "draft" });
+      await updateCampaign(camp.id, { status: "sent", sentAt: new Date().toISOString(), sentCount: (out.sent as number) ?? 0 });
       const failMsg = out.failedCount ? ` (${out.failedCount} falharam)` : "";
       toast(`Campanha enviada para ${out.sent} inscritos${failMsg}.`, out.failedCount ? "error" : "success");
       setTab("history");

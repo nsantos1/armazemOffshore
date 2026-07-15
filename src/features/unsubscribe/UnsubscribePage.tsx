@@ -3,8 +3,7 @@
 import * as React from "react";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
-import { api } from "@/lib/api";
-import { isApiFailure } from "@/lib/types";
+import { unsubscribe } from "@/lib/newsletter-client";
 import type { NavigateFn } from "@/lib/types";
 
 interface UnsubscribeResult {
@@ -20,16 +19,17 @@ export function UnsubscribePage({ navigate }: { navigate: NavigateFn }) {
   const [result, setResult] = React.useState<UnsubscribeResult>({ ok: false, email: "", error: "" });
 
   React.useEffect(() => {
-    setTimeout(() => {
+    (async () => {
       if (!token) { setLoading(false); setResult({ ok: false, email: "", error: "Token ausente." }); return; }
-      const r = api.nlUnsubscribeByToken(token);
-      if (isApiFailure(r)) {
-        setResult({ ok: false, email: "", error: r.reason === "not_found" ? "Inscrito não encontrado." : "Token inválido." });
-      } else {
-        setResult({ ok: true, email: r.sub.email, error: "" });
+      try {
+        const r = await unsubscribe(token);
+        if (r.ok) setResult({ ok: true, email: (r.email as string) || "", error: "" });
+        else setResult({ ok: false, email: "", error: r.reason === "not_found" ? "Inscrito não encontrado." : "Token inválido." });
+      } catch {
+        setResult({ ok: false, email: "", error: "Falha de conexão." });
       }
       setLoading(false);
-    }, 500);
+    })();
   }, []);
 
   let content: React.ReactNode;

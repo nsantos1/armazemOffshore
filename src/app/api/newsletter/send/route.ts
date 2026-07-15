@@ -15,6 +15,7 @@
 
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { listSubs, subToken } from "@/lib/newsletter-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,8 +40,8 @@ interface Payload {
   html?: unknown;
   preheader?: unknown;
   coverImage?: unknown;
-  recipients?: unknown;
   test?: unknown;
+  testEmail?: unknown;
 }
 
 const asString = (v: unknown): string => (typeof v === "string" ? v : "");
@@ -121,13 +122,28 @@ export async function POST(req: Request) {
   if (!subject) return NextResponse.json({ ok: false, error: "Assunto obrigatório." }, { status: 422 });
   if (!html.trim()) return NextResponse.json({ ok: false, error: "Conteúdo obrigatório." }, { status: 422 });
 
-  const rawRecipients = Array.isArray(body.recipients) ? body.recipients : [];
-  const recipients: Recipient[] = rawRecipients
-    .map(r => ({ email: asString((r as Recipient)?.email).trim().toLowerCase(), unsubscribeUrl: asString((r as Recipient)?.unsubscribeUrl).trim() }))
-    .filter(r => EMAIL_RE.test(r.email));
+  // Destinatários: no teste, o e-mail informado; no disparo real, os inscritos
+  // ATIVOS lidos do servidor (banco) — não mais do navegador.
+  let recipients: Recipient[];
+  if (isTest) {
+    const testEmail = asString(body.testEmail).trim().toLowerCase();
+    if (!EMAIL_RE.test(testEmail)) {
+      return NextResponse.json({ ok: false, error: "E-mail de teste inválido." }, { status: 422 });
+    }
+    recipients = [{ email: testEmail }];
+  } else {
+    const proto = req.headers.get("x-forwarded-proto") || "https";
+    const host = req.headers.get("host") || "";
+    const origin = (process.env.PUBLIC_SITE_URL?.trim()) || (host ? `${proto}://${host}` : new URL(req.url).origin);
+    const active = (await listSubs()).filter(s => s.status === "active");
+    recipients = active.map(s => ({
+      email: s.email,
+      unsubscribeUrl: `${origin}/api/newsletter/unsubscribe?token=${subToken(s.id)}`,
+    }));
+  }
 
   if (recipients.length === 0) {
-    return NextResponse.json({ ok: false, error: "Nenhum destinatário válido." }, { status: 422 });
+    return NextResponse.json({ ok: false, error: "Nenhum inscrito ativo para enviar." }, { status: 422 });
   }
   if (recipients.length > MAX_RECIPIENTS) {
     return NextResponse.json({ ok: false, error: `Muitos destinatários (máx. ${MAX_RECIPIENTS} por disparo).` }, { status: 413 });

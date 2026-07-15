@@ -6,8 +6,6 @@ import {
   SEED_CATEGORIES,
   SEED_CERTS,
   SEED_IDENTITY,
-  SEED_NL_CAMPS,
-  SEED_NL_SUBS,
   SEED_SETTINGS,
 } from "./seed-data";
 import type {
@@ -15,25 +13,11 @@ import type {
   Banner,
   Certifications,
   Identity,
-  NLCampaign,
-  NLSubscriber,
   Partner,
   PartnerKind,
   Session,
   Settings,
 } from "./types";
-
-// ---- Inicialização -----------------------------------------------------
-// O CONTEÚDO do site (banners, parceiros, identidade, configurações, certificações,
-// categorias) agora é servido pelo servidor e semeado lá — não é mais semeado aqui
-// (ver storage.hydrate + content-store). Aqui só restam as chaves que continuam no
-// localStorage: inscritos e campanhas da newsletter.
-export function init(): void {
-  if (typeof window === "undefined") return;
-  if (!read(KEY.nlSubs, null)) write(KEY.nlSubs, SEED_NL_SUBS);
-  if (!read(KEY.nlCamps, null)) write(KEY.nlCamps, SEED_NL_CAMPS);
-}
-init();
 
 // ---- API ---------------------------------------------------------------
 // Nota: as NOTÍCIAS têm o próprio fluxo no servidor (posts-store + /api/posts e
@@ -154,65 +138,4 @@ export const api = {
   },
   logout: (): void => { if (typeof window !== "undefined") window.localStorage.removeItem(KEY.auth); },
   getSession: (): Session | null => read(KEY.auth, null),
-
-  // ===== NEWSLETTER =====================================================
-  // Subscribers
-  // TODO: Substituir por POST /api/newsletter/subscribe (público) e GET /api/admin/newsletter/subscribers (admin)
-  nlGetSubs: (): NLSubscriber[] => read(KEY.nlSubs, []),
-  nlCountActive: (): number => api.nlGetSubs().filter(s => s.status === "active").length,
-  nlAddSub: (email: string, opts: { source?: NLSubscriber["source"]; ip?: string } = {}): ApiResult<{ sub?: NLSubscriber; reactivated?: boolean }> => {
-    const list = api.nlGetSubs();
-    const norm = (email || "").trim().toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(norm)) return { ok: false, reason: "invalid_email" };
-    if (list.find(s => s.email === norm && s.status === "active")) return { ok: false, reason: "already_subscribed" };
-    const existing = list.find(s => s.email === norm);
-    if (existing) {
-      // re-activate
-      api.nlUpdateSub(existing.id, { status: "active", reactivatedAt: new Date().toISOString() });
-      return { ok: true, reactivated: true };
-    }
-    const sub: NLSubscriber = {
-      id: uid(), email: norm, status: "active",
-      source: opts.source || "manual",
-      createdAt: new Date().toISOString(),
-      ip: opts.ip || "-",
-    };
-    write(KEY.nlSubs, [sub, ...list]);
-    return { ok: true, sub };
-  },
-  nlUpdateSub: (id: string, patch: Partial<NLSubscriber>): NLSubscriber | undefined => {
-    const list = api.nlGetSubs().map(s => s.id === id ? { ...s, ...patch, updatedAt: new Date().toISOString() } : s);
-    write(KEY.nlSubs, list);
-    return list.find(s => s.id === id);
-  },
-  nlDeleteSub: (id: string): void => write(KEY.nlSubs, api.nlGetSubs().filter(s => s.id !== id)),
-  nlUnsubscribeByToken: (token: string): ApiResult<{ sub: NLSubscriber }> => {
-    // Token simulado = base64 do id. No backend real, é um JWT/HMAC assinado.
-    let id: string;
-    try { id = atob(token); } catch { return { ok: false, reason: "invalid_token" }; }
-    const sub = api.nlGetSubs().find(s => s.id === id);
-    if (!sub) return { ok: false, reason: "not_found" };
-    api.nlUpdateSub(id, { status: "unsubscribed", unsubscribedAt: new Date().toISOString() });
-    return { ok: true, sub };
-  },
-  nlSubToken: (id: string): string => btoa(id),
-
-  // Campaigns
-  nlGetCamps: (): NLCampaign[] => read(KEY.nlCamps, []).slice().sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
-  nlGetCamp: (id: string): NLCampaign | undefined => api.nlGetCamps().find(c => c.id === id),
-  nlCreateCamp: (data: Partial<NLCampaign>): NLCampaign => {
-    const list = read(KEY.nlCamps, [] as NLCampaign[]);
-    const camp = {
-      id: uid(), status: "draft", sentAt: null, sentCount: 0, opensCount: 0, clicksCount: 0,
-      createdAt: new Date().toISOString(), recipientMode: "all_active",
-      coverImage: null, preheader: "", ...data,
-    } as NLCampaign;
-    write(KEY.nlCamps, [camp, ...list]);
-    return camp;
-  },
-  nlUpdateCamp: (id: string, patch: Partial<NLCampaign>): NLCampaign | undefined => {
-    const list = read(KEY.nlCamps, [] as NLCampaign[]).map(c => c.id === id ? { ...c, ...patch } : c);
-    write(KEY.nlCamps, list); return list.find(c => c.id === id);
-  },
-  nlDeleteCamp: (id: string): void => write(KEY.nlCamps, read(KEY.nlCamps, [] as NLCampaign[]).filter(c => c.id !== id)),
 };

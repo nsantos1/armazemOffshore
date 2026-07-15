@@ -19,8 +19,6 @@ export const KEY = {
   settings: "ao_settings",
   certs: "ao_certs",
   auth: "ao_auth",
-  nlSubs: "ao_nl_subscribers",
-  nlCamps: "ao_nl_campaigns",
   categories: "ao_categories",
 } as const;
 
